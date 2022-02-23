@@ -7,7 +7,7 @@ enum ClientCommand
     NO_COMMAND_CLIENT,
     MESSAGE,
     USERS,
-    FRIENDS,
+    FRIEND,
     AVATAR,
     FRIEND_AVATAR
 }; //команды клиенту

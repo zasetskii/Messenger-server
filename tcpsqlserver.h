@@ -29,12 +29,11 @@ public:
     ~TcpSqlServer();
 
 private:
-    //void sendCommand(const QString& command, QTcpSocket* client_socket) const;
     void sendCommand(const ClientCommand& command, QTcpSocket* client_socket) const;
     void sendMessages(const QPair<QString, QString>& sender_receiver_pair, QTcpSocket* client_socket);
     void checkUpdate(const QVariantMap& message) const;
     void sendUpdate(const QVariantMap& message, QTcpSocket* client_socket) const;
-    void sendFriends(QTcpSocket* client_socket) const;
+    void sendFriends(const QString& user, QTcpSocket* client_socket) const;
     void sendUsers(QTcpSocket* client_socket);
     void addUser(const QString& user);
     void saveAvatar(const QString& username, const QImage& avatar);
@@ -52,7 +51,6 @@ private:
     SqlFriendsModel* m_friends_model;
     QHash<QTcpSocket*, QPair<QString, QString>> m_active_connections; // "socket - {sender, receiver}"
 
-    //QString m_command = "NO COMMAND";
     ServerCommand m_command = NO_COMMAND_SERVER;
     int m_next_block_size = 0;
 

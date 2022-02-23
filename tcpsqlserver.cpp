@@ -77,7 +77,7 @@ void TcpSqlServer::sendMessages(const QPair<QString, QString>& sender_receiver_p
         QSqlRecord record = m_message_model->record(i);
         QVariantMap variant_map_record;
         variant_map_record.insert("id", record.value(0)); //отправляем messege_id
-        for (int col = 1; col < m_message_model->columnCount(); ++col) //передаём все столбцы, кроме message_id
+        for (int col = 1; col < m_message_model->columnCount(); ++col) //передаём все остальные столбцы
         {
             variant_map_record.insert(record.fieldName(col), record.value(col));
         }
@@ -153,24 +153,36 @@ void TcpSqlServer::addUser(const QString &user)
     m_users_model->select();
 }
 
-void TcpSqlServer::sendFriends(QTcpSocket *client_socket) const
+void TcpSqlServer::sendFriends(const QString& user, QTcpSocket *client_socket) const
 {
+    m_friends_model->setUserFilter(user);
+    m_friends_model->select();
     int count_items = m_friends_model->rowCount();
-    QStringList friends_list;
+    //Для каждого друга отправляем последнее сообщение из переписки
     for (int i = 0; i < count_items; ++i)
     {
-        QSqlRecord record = m_friends_model->record(i);
-        QString friend_name = record.value("friend_name").toString();
-        friends_list.append(friend_name);
+        QSqlRecord friend_record = m_friends_model->record(i);
+        QString friend_name = friend_record.value("friend_name").toString();
+
+        m_message_model->setSenderReceiverFilter(user, friend_name);
+        m_message_model->sortByTimeDate();
+        m_message_model->select();
+        //Составляем запись для отправки: text, time, sender, friend_name
+        QSqlRecord last_record = m_message_model->record(m_message_model->rowCount() - 1);
+        QVariantMap variant_map_record;
+        for (int col = 1; col < 4; ++col)
+        {
+            variant_map_record.insert(last_record.fieldName(col), last_record.value(col));
+        }
+        variant_map_record.insert("friend_name", friend_name);
+        sendCommand(FRIEND, client_socket);
+        QByteArray block_message;
+        QDataStream out(&block_message, QIODevice::WriteOnly);
+        out << 0 << variant_map_record;
+        out.device()->seek(0);
+        out << block_message.size() - sizeof(int);
+        client_socket->write(block_message);
     }
-    sendCommand(FRIENDS, client_socket);
-    //Отправляем список друзей
-    QByteArray block_message;
-    QDataStream out(&block_message, QIODevice::WriteOnly);
-    out << 0 << friends_list;
-    out.device()->seek(0);
-    out << block_message.size() - sizeof(int);
-    client_socket->write(block_message);
 }
 
 void TcpSqlServer::saveAvatar(const QString &username, const QImage &avatar)
@@ -300,9 +312,7 @@ void TcpSqlServer::slotReadClient()
         {
             QString user;
             in >> user;
-            m_friends_model->setUserFilter(user);
-            m_friends_model->select();
-            sendFriends(client_socket);
+            sendFriends(user, client_socket);
             m_command = NO_COMMAND_SERVER;
         }
         else if (m_command == FRIEND_APPEND)
