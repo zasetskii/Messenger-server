@@ -31,7 +31,8 @@ void createTable(QSqlDatabase* database)
         QSqlQuery query;
         if (!query.exec("CREATE TABLE user ("
                         "user_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                        "name VARCHAR(30));"))
+                        "name VARCHAR(30),"
+                        "image_url VARCHAR(150));"))
         {
             qDebug() << "Unable to create a table 'user'";
         }

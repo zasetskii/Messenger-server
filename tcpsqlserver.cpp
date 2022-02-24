@@ -164,6 +164,12 @@ void TcpSqlServer::sendFriends(const QString& user, QTcpSocket *client_socket) c
         QSqlRecord friend_record = m_friends_model->record(i);
         QString friend_name = friend_record.value("friend_name").toString();
 
+        QString filter = QString("name = '%1'").arg(friend_name);
+        m_users_model->setFilter(filter);
+        QSqlRecord record = m_users_model->record(0);
+        QString image_path = record.value("image_url").toString();
+        QImage avatar(image_path);
+
         m_message_model->setSenderReceiverFilter(user, friend_name);
         m_message_model->sortByTimeDate();
         m_message_model->select();
@@ -175,6 +181,11 @@ void TcpSqlServer::sendFriends(const QString& user, QTcpSocket *client_socket) c
             variant_map_record.insert(last_record.fieldName(col), last_record.value(col));
         }
         variant_map_record.insert("friend_name", friend_name);
+
+        variant_map_record.insert("avatar", avatar);
+        bool hasAvatar = avatar.size() != QSize(0, 0);
+        variant_map_record.insert("hasAvatar", hasAvatar);
+
         sendCommand(FRIEND, client_socket);
         QByteArray block_message;
         QDataStream out(&block_message, QIODevice::WriteOnly);
