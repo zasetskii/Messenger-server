@@ -39,6 +39,7 @@ void createTable(QSqlDatabase* database)
         else
         {
             qDebug() << "Table 'user' created";
+            query.exec("INSERT INTO user(name) VALUES('Ivan Ivanov');");
         }
     }
 
